@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="fr">
+<html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -360,7 +360,7 @@ body { font-family: 'Segoe UI', 'Helvetica Neue', Arial, sans-serif; }
 
 /* Cells */
 .c-fixid { font-size: 9px; color: #ccc; font-family: 'Courier New', monospace; width: 52px; }
-.c-canal { font-size: 13px; font-weight: 800; color: #1a1a2e; width: 52px; }
+.c-channel { font-size: 13px; font-weight: 800; color: #1a1a2e; width: 52px; }
 .c-name    { font-weight: 600; color: #1a1a2e; }
 .c-subname { font-size: 9px; color: #aaa; margin-top: 1px; }
 .c-type    { color: #aaa; font-style: italic; font-size: 10px; }
@@ -441,19 +441,19 @@ body { font-family: 'Segoe UI', 'Helvetica Neue', Arial, sans-serif; }
 <body>
 
 <!-- ══════════════════════════════════════════
-     ÉCRAN 1 — ZONE DE DÉPÔT
+     SCREEN 1 — DROP ZONE
 ══════════════════════════════════════════ -->
 <div id="screen-drop">
 
   <div class="drop-header">
     <h1>MA2 Patch Viewer</h1>
-    <p>grandMA2 XML → Feuille de patch imprimable</p>
+    <p>grandMA2 XML → Printable patch sheet</p>
   </div>
 
-  <div id="drop-zone" tabindex="0" role="button" aria-label="Zone de dépôt de fichier XML">
+  <div id="drop-zone" tabindex="0" role="button" aria-label="XML file drop zone">
     <span class="dz-icon">📋</span>
-    <div class="dz-main">Glisser le fichier XML ici</div>
-    <div class="dz-hint">ou cliquer pour parcourir</div>
+    <div class="dz-main">Drop the XML file here</div>
+    <div class="dz-hint">or click to browse</div>
     <span class="dz-badge">.xml — grandMA2 Patch Export</span>
     <input type="file" id="file-input" accept=".xml" aria-hidden="true">
   </div>
@@ -461,13 +461,13 @@ body { font-family: 'Segoe UI', 'Helvetica Neue', Arial, sans-serif; }
   <div id="error-box"></div>
 
   <div class="logo-panel">
-    <span class="lp-label">Logo sur la feuille de patch</span>
-    <button id="btn-logo">📷&nbsp; Charger mon logo</button>
+    <span class="lp-label">Logo on the patch sheet</span>
+    <button id="btn-logo">📷&nbsp; Upload logo</button>
     <input type="file" id="logo-input" accept="image/png,image/jpeg,image/webp,image/svg+xml" aria-hidden="true">
     <div class="logo-status">
-      <img id="logo-preview" alt="Aperçu logo">
+      <img id="logo-preview" alt="Logo preview">
       <span id="logo-fname"></span>
-      <button id="btn-rm-logo" title="Supprimer le logo">✕</button>
+      <button id="btn-rm-logo" title="Remove logo">✕</button>
     </div>
   </div>
 
@@ -475,22 +475,22 @@ body { font-family: 'Segoe UI', 'Helvetica Neue', Arial, sans-serif; }
 
 
 <!-- ══════════════════════════════════════════
-     ÉCRAN 2 — RÉSULTAT
+  SCREEN 2 — RESULT
 ══════════════════════════════════════════ -->
 <div id="screen-result" style="display:none">
   <div class="toolbar">
     <span class="t-brand">MA2 Patch Viewer</span>
     <span class="t-file" id="t-filename"></span>
     <span class="t-spacer"></span>
-    <button class="btn-back"  id="btn-back">← Nouveau fichier</button>
-    <button class="btn-print" id="btn-print">🖨&nbsp; Imprimer / PDF</button>
+    <button class="btn-back"  id="btn-back">← New file</button>
+    <button class="btn-print" id="btn-print">🖨&nbsp; Print / PDF</button>
   </div>
   <div id="patch-output"></div>
 </div>
 
 
 <!-- ══════════════════════════════════════════
-     JAVASCRIPT
+    JAVASCRIPT
 ══════════════════════════════════════════ -->
 <script>
 'use strict';
@@ -523,17 +523,12 @@ const uniChan = addr => ((addr - 1) % 512) + 1;
 const pad3    = n    => String(n).padStart(3, '0');
 
 function fmtDate(iso) {
-  try { return new Date(iso).toLocaleDateString('fr-FR', { day:'numeric', month:'long', year:'numeric' }); }
+  try { return new Date(iso).toLocaleDateString('en-US', { day:'numeric', month:'long', year:'numeric' }); }
   catch { return iso?.slice(0, 10) ?? ''; }
 }
 
-/* ─── layer color (name-based detection, then fallback) ─── */
-function layerColor(name, idx) {
-  const n = (name || '').toLowerCase();
-  if (/\btrad\b|convent|dimmer/.test(n))                   return '#c0392b';
-  if (/\bpar\b|led|kolor|wash/.test(n))                    return '#2471a3';
-  if (/lyre|moving|beam|spot|\bmac\b|robe|clay/.test(n))  return '#7d3c98';
-  if (/barre|\bbar\b|strip|pixel|rampl|ghost/.test(n))     return '#1a7a44';
+/* ─── layer color ─── */
+function layerColor(idx) {
   return LAYER_COLORS[idx % LAYER_COLORS.length];
 }
 
@@ -570,7 +565,7 @@ function parseMA2(xmlText) {
   const doc = new DOMParser().parseFromString(xmlText, 'text/xml');
 
   if (doc.querySelector('parsererror'))
-    throw new Error('Fichier XML invalide ou corrompu.');
+    throw new Error('Invalid or corrupted XML file.');
 
   const root = doc.documentElement;
 
@@ -612,7 +607,7 @@ function parseMA2(xmlText) {
     }
 
     if (!fixtures.length) continue;
-    // Calcul de l'empreinte DMX réelle depuis l'écart d'adresse entre fixtures consécutives
+    // Calculate the actual DMX footprint from the address gap between consecutive fixtures.
     const sfx = fixtures
       .filter(f => f.subfixtures.length === 1)
       .sort((a, b) => a.subfixtures[0].address - b.subfixtures[0].address);
@@ -620,7 +615,7 @@ function parseMA2(xmlText) {
       const gap = sfx[i+1].subfixtures[0].address - sfx[i].subfixtures[0].address;
       if (gap > 0 && gap < 256) sfx[i].dmxFootprint = gap;
     }
-    // Dernier fixture de chaque type : on réutilise l'empreinte des autres du même type
+    // For the final fixture of each type, reuse the footprint from matching fixtures.
     const fpByType = {};
     sfx.forEach(f => { if (f.dmxFootprint) fpByType[f.type] = f.dmxFootprint; });
     sfx.forEach(f => { if (!f.dmxFootprint && fpByType[f.type]) f.dmxFootprint = fpByType[f.type]; });
@@ -632,7 +627,7 @@ function parseMA2(xmlText) {
   }
 
   if (!layers.length)
-    throw new Error('Aucun layer avec des appareils patchés trouvé dans ce fichier.');
+    throw new Error('No layer containing patched fixtures was found in this file.');
 
   return { showInfo, layers };
 }
@@ -658,7 +653,7 @@ function buildUniData(layers) {
     .map(([num, d]) => ({
       num:    +num,
       name:   [...d.names].join(' · '),
-      detail: `Canaux ${pad3(d.minCh)} – ${pad3(d.maxCh)}`
+      detail: `Channels ${pad3(d.minCh)} – ${pad3(d.maxCh)}`
     }));
 }
 
@@ -688,7 +683,7 @@ function renderRow(fix, s, color, hasChId, isGroupSep) {
 
   return `<tr${isGroupSep ? ' class="g-sep"' : ''}>
     <td class="c-fixid">${esc(fix.fixture_id)}</td>
-    ${hasChId ? `<td class="c-canal">${esc(fix.channel_id ?? '—')}</td>` : ''}
+    ${hasChId ? `<td class="c-channel">${esc(fix.channel_id ?? '—')}</td>` : ''}
     <td><div class="c-name">${esc(mainLabel)}</div>${subLabel ? `<div class="c-subname">${esc(subLabel)}</div>` : ''}</td>
     <td class="tc">${s ? `<span class="chip u${s.uni}">U${s.uni}</span>` : '—'}</td>
     ${addrCell}
@@ -705,7 +700,7 @@ function renderRow(fix, s, color, hasChId, isGroupSep) {
 
 /* Full layer section */
 function renderLayer(layer, idx) {
-  const color   = layerColor(layer.name, idx);
+  const color   = layerColor(idx);
   const hasChId = layer.fixtures.some(f => f.channel_id !== null);
 
   let lastGroup = null;
@@ -718,24 +713,24 @@ function renderLayer(layer, idx) {
   }).join('');
 
   const stats  = layer.fixtures.map(f => fixStats(f)).filter(Boolean);
-  const uniStr = [...new Set(stats.map(s => `Univers ${s.uni}`))].join(', ');
+  const uniStr = [...new Set(stats.map(s => `Universe ${s.uni}`))].join(', ');
 
   return `
 <div class="layer">
   <div class="layer-header">
     <span class="layer-badge" style="background:${color}">Layer ${layer.index}</span>
     <span class="layer-name">${esc(layer.name)}</span>
-    <span class="layer-info">${layer.fixtures.length} appareil${layer.fixtures.length > 1 ? 's' : ''} &nbsp;·&nbsp; ${uniStr}</span>
+    <span class="layer-info">${layer.fixtures.length} fixture${layer.fixtures.length > 1 ? 's' : ''} &nbsp;·&nbsp; ${uniStr}</span>
   </div>
   <table class="patch-table">
     <thead><tr>
       <th>Fix. ID</th>
-      ${hasChId ? '<th>Canal</th>' : ''}
-      <th>${hasChId ? 'Nom' : 'Profil'}</th>
+      ${hasChId ? '<th>Channel</th>' : ''}
+      <th>${hasChId ? 'Name' : 'Profile'}</th>
       <th class="tc">Univ.</th>
-      <th>Adresse DMX</th>
+      <th>DMX Address</th>
       <th class="tc">Instances</th>
-      <th>Canaux</th>
+      <th>Channels</th>
     </tr></thead>
     <tbody>${rows}</tbody>
   </table>
@@ -765,14 +760,14 @@ function renderPatch(data, logoUrl) {
     <div class="meta">
       <div class="showname">${esc(showInfo.showfile.toUpperCase())}</div>
       ${date ? `<div class="detail">${esc(date)}</div>` : ''}
-      <div class="detail">${totalFix} appareil${totalFix > 1 ? 's' : ''} &nbsp;·&nbsp; ${layers.length} layer${layers.length > 1 ? 's' : ''} &nbsp;·&nbsp; ${uniSet.size} univers DMX</div>
+      <div class="detail">${totalFix} fixture${totalFix > 1 ? 's' : ''} &nbsp;·&nbsp; ${layers.length} layer${layers.length > 1 ? 's' : ''} &nbsp;·&nbsp; ${uniSet.size} DMX universe${uniSet.size > 1 ? 's' : ''}</div>
     </div>
   </div>
 
   <div class="uni-bar">
     ${uniData.map(u => `
     <div class="uni-card u${u.num}">
-      <div class="u-num">Univers ${u.num}</div>
+      <div class="u-num">Universe ${u.num}</div>
       <div class="u-title">${esc(u.name)}</div>
       <div class="u-detail">${esc(u.detail)}</div>
     </div>`).join('')}
@@ -784,7 +779,7 @@ function renderPatch(data, logoUrl) {
 
   <div class="page-footer">
     <span>grandMA2 &nbsp;·&nbsp; ${esc(showInfo.showfile)}${date ? ' &nbsp;·&nbsp; ' + esc(date) : ''}</span>
-    <span>${totalFix} appareils &nbsp;·&nbsp; ${totalParams} param. GMA2 &nbsp;·&nbsp; ${totalCh} canaux DMX</span>
+    <span>${totalFix} fixture${totalFix > 1 ? 's' : ''} &nbsp;·&nbsp; ${totalParams} GMA2 params &nbsp;·&nbsp; ${totalCh} DMX channels</span>
   </div>
 
 </div>`;
@@ -796,7 +791,7 @@ function renderPatch(data, logoUrl) {
 function applyLogoUI(dataUrl, name) {
   $('logo-preview').src           = dataUrl;
   $('logo-preview').style.display = 'block';
-  $('logo-fname').textContent     = name || 'Logo enregistré';
+  $('logo-fname').textContent     = name || 'Saved logo';
   $('logo-fname').style.display   = 'inline';
   $('btn-rm-logo').style.display  = 'inline-flex';
 }
@@ -815,10 +810,10 @@ function processFile(file) {
   clearErr();
   if (!file) return;
   if (!file.name.toLowerCase().endsWith('.xml')) {
-    showErr('Ce fichier n\'est pas un .xml. Exportez le patch depuis grandMA2 en format XML.'); return;
+    showErr('This is not an .xml file. Export the patch from grandMA2 in XML format.'); return;
   }
   const reader = new FileReader();
-  reader.onerror = () => showErr('Impossible de lire le fichier.');
+  reader.onerror = () => showErr('Unable to read the file.');
   reader.onload  = e => {
     try {
       const data = parseMA2(e.target.result);
@@ -874,7 +869,7 @@ function clearErr()   { $('error-box').innerHTML = ''; }
     e.target.value = '';
     if (!f) return;
     if (f.size > 3 * 1024 * 1024) {
-      alert('Image trop volumineuse (max 3 Mo). Compressez-la d\'abord.'); return;
+      alert('Image is too large (3 MB maximum). Please compress it first.'); return;
     }
     const r = new FileReader();
     r.onload = ev => {
